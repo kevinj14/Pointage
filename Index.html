@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Pointage Hebdomadaire</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #222222;
+    --border: #2e2e2e;
+    --accent: #c8ff00;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding-bottom: 40px; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 20px 20px 16px; position: sticky; top: 0; z-index: 100; }
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .app-title { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+  .app-title span { color: var(--accent); }
+  .week-nav { display: flex; align-items: center; gap: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; padding: 6px 14px; }
+  .week-nav button { background: none; border: none; color: var(--text); font-size: 16px; cursor: pointer; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .week-label { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); font-weight: 500; white-space: nowrap; }
+  .days-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 0 2px; }
+  .days-tabs::-webkit-scrollbar { display: none; }
+  .day-tab { flex-shrink: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; padding: 6px 14px; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .day-tab .day-name { font-size: 11px; }
+  .day-tab .day-num { font-size: 14px; font-weight: 700; }
+  .day-tab.active { background: var(--accent); border-color: var(--accent); color: #0f0f0f; }
+  .day-tab.has-data::after { content: ''; width: 5px; height: 5px; background: var(--accent2); border-radius: 50%; display: block; margin-top: 2px; }
+  .day-tab.active.has-data::after { background: #0f0f0f; }
+  .content { padding: 20px; }
+  .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .day-full-name { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .total-badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 100px; padding: 6px 14px; font-family: 'DM Mono', monospace; font-size: 13px; color: var(--accent); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .card-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; }
+  .field input { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; padding: 12px 14px; width: 100%; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  .field input:focus { border-color: var(--accent); }
+  .field input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.3); }
+  .field-full { grid-column: 1 / -1; }
+  .field input[type="text"] { font-size: 15px; font-family: 'Syne', sans-serif; }
+  .computed-row { display: flex; justify-content: space-between; align-items: center; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 4px; }
+  .computed-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .computed-value { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; color: var(--accent); }
+  .save-btn { width: 100%; background: var(--accent); border: none; border-radius: 12px; color: #0f0f0f; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; padding: 16px; cursor: pointer; margin-top: 6px; }
+  .summary-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 24px; }
+  .summary-header { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+  .summary-total { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--accent); }
+  .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-day { font-size: 13px; font-weight: 700; color: var(--text); min-width: 80px; }
+  .summary-lieu { font-size: 12px; color: var(--muted); flex: 1; padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .summary-hours { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--text); font-weight: 500; }
+  .summary-hours.empty { color: var(--muted); }
+  .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--accent); color: #0f0f0f; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 100px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 999; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-top">
+    <div class="app-title">Pointage<span>.</span></div>
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">&#8249;</button>
+      <span class="week-label" id="weekLabel">S00 — 2026</span>
+      <button onclick="changeWeek(1)">&#8250;</button>
+    </div>
+  </div>
+  <div class="days-tabs" id="daysTabs"></div>
+</header>
+<div class="content">
+  <div class="day-header">
+    <div class="day-full-name" id="dayFullName"></div>
+    <div class="total-badge" id="totalBadge">— h —</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Horaires</div>
+    <div class="time-grid">
+      <div class="field"><label>🌅 Début matin</label><input type="time" id="debut" oninput="computeTime()"></div>
+      <div class="field"><label>☀️ Fin matin</label><input type="time" id="finMatin" oninput="computeTime()"></div>
+      <div class="field"><label>🌤 Début après-midi</label><input type="time" id="debutAM" oninput="computeTime()"></div>
+      <div class="field"><label>🌙 Fin journée</label><input type="time" id="finJournee" oninput="computeTime()"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Lieu de déplacement</div>
+    <div class="field"><input type="text" id="lieu" placeholder="Ex: Client Lyon, Siège Paris…"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Temps de travail</div>
+    <div class="computed-row">
+      <span class="computed-label">Total journée</span>
+      <span class="computed-value" id="computedTime">— h —</span>
+    </div>
+  </div>
+  <button class="save-btn" onclick="saveDay()">✓ Enregistrer la journée</button>
+  <div class="summary-card">
+    <div class="summary-header"><span>Récap semaine</span><span class="summary-total" id="summaryTotal"></span></div>
+    <div id="summaryBody"></div>
+  </div>
+</div>
+<div class="toast" id="toast">Journée enregistrée !</div>
+<script>
+const DAYS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const DAYS_SHORT=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+let currentWeekOffset=0,currentDayIndex=0;
+function getMonday(offset=0){const now=new Date(),day=now.getDay(),diff=(day===0?-6:1-day),monday=new Date(now);monday.setDate(now.getDate()+diff+offset*7);monday.setHours(0,0,0,0);return monday;}
+function getWeekNumber(date){const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));d.setUTCDate(d.getUTCDate()+4-(d.getUTCDay()||7));const y=new Date(Date.UTC(d.getUTCFullYear(),0,1));return Math.ceil((((d-y)/86400000)+1)/7);}
+function getStorageKey(w,d){const m=getMonday(w),date=new Date(m);date.setDate(m.getDate()+d);return`pointage_${date.toISOString().slice(0,10)}`;}
+function loadDay(w,d){const raw=localStorage.getItem(getStorageKey(w,d));return raw?JSON.parse(raw):null;}
+function saveDay(){const debut=document.getElementById('debut').value,finMatin=document.getElementById('finMatin').value,debutAM=document.getElementById('debutAM').value,finJournee=document.getElementById('finJournee').value,lieu=document.getElementById('lieu').value,minutes=computeMinutes();localStorage.setItem(getStorageKey(currentWeekOffset,currentDayIndex),JSON.stringify({debut,finMatin,debutAM,finJournee,lieu,minutes}));renderTabs();renderSummary();showToast();}
+function computeMinutes(){const toMin=t=>{if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;};const d=toMin(document.getElementById('debut').value),fm=toMin(document.getElementById('finMatin').value),dam=toMin(document.getElementById('debutAM').value),fj=toMin(document.getElementById('finJournee').value);let total=0;if(d!==null&&fm!==null&&fm>d)total+=fm-d;if(dam!==null&&fj!==null&&fj>dam)total+=fj-dam;return total;}
+function computeTime(){const minutes=computeMinutes(),el=document.getElementById('computedTime'),badge=document.getElementById('totalBadge');if(minutes===0){el.textContent='— h —';badge.textContent='— h —';}else{const h=Math.floor(minutes/60),m=minutes%60,str=`${h}h${m>0?m.toString().padStart(2,'0'):'00'}`;el.textContent=str;badge.textContent=str;}}
+function formatMinutes(min){if(!min||min===0)return null;const h=Math.floor(min/60),m=min%60;return`${h}h${m>0?m.toString().padStart(2,'0'):'00'}`;}
+function renderTabs(){const monday=getMonday(currentWeekOffset),tabs=document.getElementById('daysTabs');tabs.innerHTML='';DAYS.forEach((day,i)=>{const date=new Date(monday);date.setDate(monday.getDate()+i);const data=loadDay(currentWeekOffset,i),btn=document.createElement('button');btn.className='day-tab'+(i===currentDayIndex?' active':'')+(data?' has-data':'');btn.innerHTML=`<span class="day-name">${DAYS_SHORT[i]}</span><span class="day-num">${date.getDate()}</span>`;btn.onclick=()=>selectDay(i);tabs.appendChild(btn);});document.getElementById('weekLabel').textContent=`S${getWeekNumber(monday)} — ${monday.getFullYear()}`;}
+function selectDay(index){currentDayIndex=index;renderTabs();loadDayIntoForm();}
+function loadDayIntoForm(){const monday=getMonday(currentWeekOffset),date=new Date(monday);date.setDate(monday.getDate()+currentDayIndex);document.getElementById('dayFullName').textContent=DAYS[currentDayIndex]+' '+date.getDate()+'/'+String(date.getMonth()+1).padStart(2,'0');const data=loadDay(currentWeekOffset,currentDayIndex);document.getElementById('debut').value=data?.debut||'';document.getElementById('finMatin').value=data?.finMatin||'';document.getElementById('debutAM').value=data?.debutAM||'';document.getElementById('finJournee').value=data?.finJournee||'';document.getElementById('lieu').value=data?.lieu||'';computeTime();renderSummary();}
+function renderSummary(){let totalMin=0;const body=document.getElementById('summaryBody');body.innerHTML='';const monday=getMonday(currentWeekOffset);DAYS.forEach((day,i)=>{const date=new Date(monday);date.setDate(monday.getDate()+i);const data=loadDay(currentWeekOffset,i),row=document.createElement('div');row.className='summary-row';row.onclick=()=>selectDay(i);const formatted=data?.minutes?formatMinutes(data.minutes):null;if(data?.minutes)totalMin+=data.minutes;row.innerHTML=`<span class="summary-day">${DAYS_SHORT[i]} ${date.getDate()}</span><span class="summary-lieu">${data?.lieu||''}</span><span class="summary-hours ${formatted?'':'empty'}">${formatted||'—'}</span>`;body.appendChild(row);});document.getElementById('summaryTotal').textContent=totalMin>0?formatMinutes(totalMin)+' / sem.':'';}
+function changeWeek(delta){currentWeekOffset+=delta;currentDayIndex=0;renderTabs();loadDayIntoForm();}
+function showToast(){const t=document.getElementById('toast');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000);}
+function init(){const day=new Date().getDay();currentDayIndex=day===0?6:day-1;renderTabs();loadDayIntoForm();}
+init();
+</script>
+</body>
+</html>
